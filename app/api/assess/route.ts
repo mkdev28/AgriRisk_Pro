@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getKCCData, generateRandomKCC } from '@/lib/data/mock-kcc';
 import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
 // Keep fraud detector and premium calculator
+//import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
+//import { getMockSatelliteData } from '@/lib/data/mock-satellite';
+import { getRealSatelliteData } from '@/lib/data/satellite-api';
+import { getRealWeatherForecast } from '@/lib/data/weather-api';
+import { calculateRiskScore, calculatePremium, generateRiskFactors, generateSuggestions } from '@/lib/ml/risk-calculator';
 import { detectFraud } from '@/lib/ml/fraud-detector';
-//import { calculatePremium } from '@/lib/ml/risk-calculator';
 import { AssessmentRequest, AssessmentResponse } from '@/types';
 
 // Import the new ML Client
@@ -49,6 +53,15 @@ export async function POST(req: NextRequest) {
         // Fetch satellite & weather data
         const satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
         const weatherData = getMockWeatherForecast(gps_latitude, gps_longitude);
+        // Fetch satellite data (mock)
+        //const satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
+        // Fetch weather forecast (mock)
+        //const weatherData = await getMockWeatherForecast(gps_latitude, gps_longitude);
+        // NEW:
+        const satelliteData = await getRealSatelliteData(gps_latitude, gps_longitude);
+
+        // Fetch weather forecast (mock)
+        const weatherData = await getRealWeatherForecast(gps_latitude, gps_longitude);
 
         // 3. Prepare Input for Python Brain (The New Part)
         // We combine User Input + KCC Data + Satellite Data into one payload
@@ -111,13 +124,27 @@ export async function POST(req: NextRequest) {
 
         // 6. Pricing (Keep existing logic)
         const district_avg_premium = 5000;
-        //const pricing = calculatePremium(
-        //    prediction.risk_score, // Use the score from Python
-        //    sum_insured, 
-        //    district_avg_premium
-        //);
+        const pricing = calculatePremium(riskCalculation.final_score, sum_insured, district_avg_premium);
 
-        // 7. Response Construction
+        // Generate risk factors and suggestions
+        const risk_factors = generateRiskFactors(
+            riskCalculation.breakdown.weather_risk,
+            riskCalculation.breakdown.infrastructure,
+            riskCalculation.breakdown.diversification,
+            satelliteData.ndvi
+        );
+
+        const improvement_suggestions = generateSuggestions(
+            riskCalculation.final_score,
+            riskCalculation.breakdown,
+            {
+                irrigation_type,
+                water_source_count,
+                crop_count: 1,
+                has_livestock: livestock_count > 0
+            }
+        );
+
         const processingTime = Date.now() - startTime;
 
         const response: AssessmentResponse = {
@@ -126,20 +153,14 @@ export async function POST(req: NextRequest) {
                 farmer_id: `farmer_${kcc_id}`,
                 farmer_name: kccData.farmer_name,
                 assessment_id: `assess_${Date.now()}`,
-                
-                // New ML Data
-                final_risk_score: prediction.risk_score,
-                risk_category: prediction.risk_category as any, // Type cast if needed
-                confidence_level: prediction.confidence as any,
-                scores: prediction.breakdown, // Now comes from SHAP values!
-                
-                // Existing Logic Data
-                //recommended_premium: pricing.recommended_premium,
-                //district_avg_premium: pricing.district_avg_premium,
-                //savings_amount: pricing.savings,
-                //savings_percent: pricing.savings_percent,
-                
-                // Fraud Data
+                final_risk_score: riskCalculation.final_score,
+                risk_category: riskCalculation.risk_category,
+                confidence_level: riskCalculation.confidence,
+                scores: riskCalculation.breakdown,
+                recommended_premium: pricing.recommended_premium,
+                district_avg_premium: pricing.district_avg_premium,
+                savings_amount: pricing.savings,
+                savings_percent: pricing.savings_percent,
                 fraud_flags: fraudCheck.flags,
                 requires_field_verification: fraudCheck.recommendation === 'field_verify',
                 trust_score: 50 - fraudCheck.fraud_score / 2,
