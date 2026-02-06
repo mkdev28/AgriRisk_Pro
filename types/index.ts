@@ -195,6 +195,14 @@ export interface Suggestion {
     priority_rank: number;
 }
 
+// Simplified suggestion for ML-generated recommendations
+export interface SimpleSuggestion {
+    action: string;
+    title?: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+}
+
 // Dashboard types
 export interface PortfolioMetrics {
     total_policies: number;

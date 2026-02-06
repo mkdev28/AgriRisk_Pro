@@ -28,7 +28,15 @@ import {
 } from 'lucide-react';
 import { FraudFlag, KCCData, AssessmentResponse, FraudCase } from '@/types';
 import { allMockFarmers } from '@/lib/data/mock-kcc';
-import LiveRiskMap from '@/components/maps/LiveRiskMap';
+import dynamic from 'next/dynamic';
+
+const LiveRiskMap = dynamic(
+  () => import('@/components/maps/LiveRiskMap'),
+  { ssr: false }
+);
+
+import { calculateRiskScore } from '@/lib/ml/risk-calculator';
+import { getEnvironmentalRiskData } from '@/app/actions/get-risk-data';
 
 // Mock portfolio data
 const portfolioMetrics = {
@@ -43,6 +51,7 @@ const portfolioMetrics = {
 
 export default function InsuranceDashboard() {
     const [realFraudCases, setRealFraudCases] = useState<FraudCase[]>([]);
+    const [markers, setMarkers] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchFraudCases = async () => {
@@ -93,24 +102,66 @@ export default function InsuranceDashboard() {
         }
     };
 
-    const markers = allMockFarmers.map(f => ({
-        id: f.kcc_id,
-        lat: f.approximate_location.lat,
-        lng: f.approximate_location.lng,
-        farmer: f.farmer_name,
-        risk: f.risk_level || 'medium'
-    }));
+    useEffect(() => {
+        const fetchMarkers = async () => {
+            try {
+                const markerPromises = allMockFarmers.map(async (f) => {
+                    // Fetch real environmental data for this location
+                    const envData = await getEnvironmentalRiskData(
+                        f.approximate_location.lat,
+                        f.approximate_location.lng
+                    );
+
+                    // Calculate dynamic risk score combining real env data with farmer profile
+                    const riskResult = calculateRiskScore({
+                        rainfall_deficit: envData.rainfall_deficit,
+                        heatwave_days: envData.heatwave_days,
+                        monsoon_reliability: envData.monsoon_reliability,
+
+                        // Farmer Profile (Mock/Static for now until we have database)
+                        irrigation_type: f.land_acres > 5 ? 'borewell' : 'rainfed',
+                        water_source_count: 1,
+                        borewell_depth: 300,
+                        crop_count: f.registered_crops.length,
+                        has_livestock: false,
+                        land_acres: f.land_acres,
+                        kcc_repayment_rate: f.repayment_rate_percent,
+                        outstanding_debt_ratio: f.outstanding_amount / (f.land_acres * 50000),
+                        has_insurance: false
+                    });
+
+                    return {
+                        id: f.kcc_id,
+                        lat: f.approximate_location.lat,
+                        lng: f.approximate_location.lng,
+                        farmer: f.farmer_name,
+                        risk: riskResult.risk_category
+                    };
+                });
+
+                const results = await Promise.all(markerPromises);
+                setMarkers(results);
+            } catch (error) {
+                console.error("Failed to load map markers:", error);
+            }
+        };
+
+        fetchMarkers();
+    }, []);
 
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (amount?: number) => {
+        if (typeof amount !== "number" || isNaN(amount)) return "₹0";
+
         if (amount >= 10000000) {
             return `₹${(amount / 10000000).toFixed(1)} Cr`;
         }
         if (amount >= 100000) {
             return `₹${(amount / 100000).toFixed(1)} L`;
         }
-        return `₹${amount.toLocaleString('en-IN')}`;
+        return `₹${amount.toLocaleString("en-IN")}`;
     };
+
 
     return (
         <div className="min-h-screen bg-gray-50">
