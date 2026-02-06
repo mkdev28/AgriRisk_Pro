@@ -1,13 +1,145 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKCCData } from '@/lib/data/mock-kcc';
-//import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
-//import { getMockSatelliteData } from '@/lib/data/mock-satellite';
 import { getRealSatelliteData } from '@/lib/data/satellite-api';
 import { getRealWeatherForecast } from '@/lib/data/weather-api';
+import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
 import { calculatePremium } from '@/lib/ml/risk-calculator';
 import { detectFraud } from '@/lib/ml/fraud-detector';
-import { AssessmentRequest, AssessmentResponse } from '@/types';
+import { AssessmentRequest, AssessmentResponse, Suggestion } from '@/types';
 import { mlClient, MLPredictionInput } from '@/lib/ml/ml-client';
+
+// Helper function to generate detailed, farm-specific improvement suggestions
+function generateDetailedSuggestions(params: {
+    current_risk_score: number;
+    breakdown: { weather_risk: number; infrastructure: number; diversification: number; financial_health: number };
+    irrigation_type: string;
+    crop_count: number;
+    has_canal_access: boolean;
+    land_acres: number;
+    owns_tractor: boolean;
+    has_storage: boolean;
+    has_livestock: boolean;
+    current_premium: number;
+}): Suggestion[] {
+    const suggestions: Suggestion[] = [];
+    let priority = 1;
+
+    // Irrigation improvement (if rainfed or non-drip)
+    if (params.irrigation_type === 'rainfed' || params.irrigation_type === 'flood') {
+        const score_increase = 15;
+        const new_score = Math.min(100, params.current_risk_score + score_increase);
+        const premium_savings = Math.round((params.current_premium * score_increase) / 50); // ~15% reduction
+        const cost_per_acre = 35000;
+        const estimated_cost = Math.round(params.land_acres * cost_per_acre);
+
+        suggestions.push({
+            action: 'Install Drip Irrigation',
+            description: `Upgrade from ${params.irrigation_type} to drip irrigation. Reduces water usage by 40-60% and improves yield consistency even during drought.`,
+            impact: 'high' as const,
+            score_increase,
+            premium_savings,
+            estimated_cost,
+            govt_subsidy_available: true,
+            subsidy_percent: 45,
+            priority_rank: priority++
+        });
+    }
+
+    // Crop diversification (if single crop)
+    if (params.crop_count === 1) {
+        const score_increase = 12;
+        const premium_savings = Math.round((params.current_premium * score_increase) / 50);
+        const estimated_cost = Math.round(params.land_acres * 8000); // Seed + preparation
+
+        suggestions.push({
+            action: 'Crop Diversification',
+            description: `Currently growing only 1 crop. Adding 1-2 more crops (intercropping or rotation) reduces total failure risk by 60% and stabilizes income.`,
+            impact: 'high' as const,
+            score_increase,
+            premium_savings,
+            estimated_cost,
+            govt_subsidy_available: true,
+            subsidy_percent: 25,
+            priority_rank: priority++
+        });
+    } else if (params.crop_count === 2) {
+        suggestions.push({
+            action: 'Add One More Crop Variety',
+            description: `Growing ${params.crop_count} crops. Adding one more increases resilience further.`,
+            impact: 'medium' as const,
+            score_increase: 6,
+            premium_savings: Math.round((params.current_premium * 6) / 50),
+            estimated_cost: Math.round(params.land_acres * 5000),
+            govt_subsidy_available: false,
+            subsidy_percent: 0,
+            priority_rank: priority++
+        });
+    }
+
+    // Livestock integration (if none)
+    if (!params.has_livestock && params.land_acres >= 3) {
+        suggestions.push({
+            action: 'Integrate Livestock (Dairy/Poultry)',
+            description: 'Adds alternative income source, reduces dependency on crop sales alone. Manure improves soil fertility.',
+            impact: 'medium' as const,
+            score_increase: 8,
+            premium_savings: Math.round((params.current_premium * 8) / 50),
+            estimated_cost: 45000,
+            govt_subsidy_available: true,
+            subsidy_percent: 33,
+            priority_rank: priority++
+        });
+    }
+
+    // Storage facility (if none and land >= 5 acres)
+    if (!params.has_storage && params.land_acres >= 5) {
+        suggestions.push({
+            action: 'Build Storage Facility',
+            description: 'Enables selling produce at better prices by avoiding distress sales during harvest glut. Protects from post-harvest losses (20-30%).',
+            impact: 'medium' as const,
+            score_increase: 7,
+            premium_savings: Math.round((params.current_premium * 7) / 50),
+            estimated_cost: 80000,
+            govt_subsidy_available: true,
+            subsidy_percent: 50,
+            priority_rank: priority++
+        });
+    }
+
+    // Soil testing (always beneficial)
+    suggestions.push({
+        action: 'Get Soil Health Card',
+        description: 'Free government service. Optimizes fertilizer usage, can increase yield by 10-15% and reduce input costs by ₹5,000-8,000/acre.',
+        impact: 'low' as const,
+        score_increase: 5,
+        premium_savings: Math.round((params.current_premium * 5) / 50),
+        estimated_cost: 0, // Free government service
+        govt_subsidy_available: true,
+        subsidy_percent: 100,
+        priority_rank: priority++
+    });
+
+    // Water source improvement (if no canal and land >= 4 acres)
+    if (!params.has_canal_access && params.land_acres >= 4) {
+        suggestions.push({
+            action: 'Construct Farm Pond',
+            description: 'Rainwater harvesting structure. Stores 50,000-1,00,000 liters, provides irrigation for 2-3 critical months.',
+            impact: 'medium' as const,
+            score_increase: 10,
+            premium_savings: Math.round((params.current_premium * 10) / 50),
+            estimated_cost: 120000,
+            govt_subsidy_available: true,
+            subsidy_percent: 60,
+            priority_rank: priority++
+        });
+    }
+
+    // Sort by priority and return top 4
+    return suggestions
+        .sort((a, b) => a.priority_rank - b.priority_rank)
+        .slice(0, 4);
+}
+
 
 export async function POST(req: NextRequest) {
     const startTime = Date.now();
@@ -50,13 +182,28 @@ export async function POST(req: NextRequest) {
         }
 
 
-        // Fetch satellite data (mock)
-        //const satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
-        // Fetch weather forecast (mock)
-        //const weatherData = await getMockWeatherForecast(gps_latitude, gps_longitude);
-        // NEW:
-        const satelliteData = await getRealSatelliteData(gps_latitude, gps_longitude);
-        const weatherData = await getRealWeatherForecast(gps_latitude, gps_longitude);
+        // Fetch satellite & weather data with fallback
+        let satelliteData;
+        let weatherData;
+        let usedMockData = false;
+
+        try {
+            satelliteData = await getRealSatelliteData(gps_latitude, gps_longitude);
+            console.log('✅ Using real satellite data from NASA POWER');
+        } catch (error) {
+            console.warn('⚠️ NASA POWER API failed, using mock satellite data:', error instanceof Error ? error.message : 'Unknown error');
+            satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
+            usedMockData = true;
+        }
+
+        try {
+            weatherData = await getRealWeatherForecast(gps_latitude, gps_longitude);
+            console.log('✅ Using real weather data from OpenWeather');
+        } catch (error) {
+            console.warn('⚠️ OpenWeather API failed, using mock weather data:', error instanceof Error ? error.message : 'Unknown error');
+            weatherData = getMockWeatherForecast(gps_latitude, gps_longitude);
+            usedMockData = true;
+        }
 
         // 3. Prepare Input for Python Brain (The New Part)
         // We combine User Input + KCC Data + Satellite Data into one payload
@@ -71,7 +218,8 @@ export async function POST(req: NextRequest) {
             borewell_count: borewell_count,
             borewell_depth_ft: borewell_depth_ft,
             has_canal_access: has_canal_access,
-            crop_count: 1, // Defaulting as we don't have full history
+            // Use KCC registered_crops count for diversity scoring
+            crop_count: kccData.registered_crops.length,
             has_livestock: livestock_count > 0,
             livestock_count: livestock_count,
             owns_tractor: owns_tractor,
@@ -169,43 +317,23 @@ export async function POST(req: NextRequest) {
                     // Extract fraud flag descriptions as strings
                     ...fraudCheck.flags.map(f => f.details)
                 ],
-                improvement_suggestions: [
-                    {
-                        action: 'Install Drip Irrigation',
-                        description: 'Reduces water dependency and improves resilience against drought.',
-                        impact: 'high',
-                        score_increase: 15,
-                        premium_savings: 4500,
-                        estimated_cost: 45000,
-                        govt_subsidy_available: true,
-                        subsidy_percent: 45,
-                        priority_rank: 1
-                    },
-                    {
-                        action: 'Crop Diversification',
-                        description: 'Planting multiple crops reduces failure risk.',
-                        impact: 'medium',
-                        score_increase: 8,
-                        premium_savings: 2200,
-                        estimated_cost: 12000,
-                        govt_subsidy_available: false,
-                        subsidy_percent: 0,
-                        priority_rank: 2
-                    },
-                    {
-                        action: 'Soil Testing',
-                        description: 'Optimize fertilizer usage based on soil health card.',
-                        impact: 'low',
-                        score_increase: 5,
-                        premium_savings: 1500,
-                        estimated_cost: 500,
-                        govt_subsidy_available: true,
-                        subsidy_percent: 100,
-                        priority_rank: 3
-                    }
-                ],
+                improvement_suggestions: generateDetailedSuggestions({
+                    current_risk_score: prediction.risk_score,
+                    breakdown: prediction.breakdown,
+                    irrigation_type: irrigation_type || 'rainfed',
+                    crop_count: kccData.registered_crops.length,
+                    has_canal_access,
+                    land_acres: kccData.land_acres,
+                    owns_tractor,
+                    has_storage,
+                    has_livestock: livestock_count > 0,
+                    current_premium: pricing.recommended_premium
+                }),
 
-                data_sources: ['KCC Registry', 'NASA Satellite', 'CatBoost ML Engine'],
+
+                data_sources: usedMockData
+                    ? ['KCC Registry', 'Mock Satellite/Weather', 'CatBoost ML Engine']
+                    : ['KCC Registry', 'NASA POWER', 'OpenWeather', 'CatBoost ML Engine'],
                 processing_time_ms: processingTime
             }
         };
