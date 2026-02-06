@@ -79,7 +79,7 @@ class PredictionInput(BaseModel):
     has_insurance_history: bool
     
     # Weather
-    rainfall_deficit_percent: float
+    rainfall_deficit_pct: float  # Changed from rainfall_deficit_percent to match model
     actual_rainfall_mm: float = Field(..., ge=0)
     heatwave_days: int = Field(..., ge=0)
     avg_temperature_c: Optional[float] = None

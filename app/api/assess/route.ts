@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Keep your original data imports
 import { getKCCData, generateRandomKCC } from '@/lib/data/mock-kcc';
-import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
-// Keep fraud detector and premium calculator
-//import { getMockSatelliteData, getMockWeatherForecast } from '@/lib/data/mock-satellite';
-//import { getMockSatelliteData } from '@/lib/data/mock-satellite';
 import { getRealSatelliteData } from '@/lib/data/satellite-api';
 import { getRealWeatherForecast } from '@/lib/data/weather-api';
-import { calculateRiskScore, calculatePremium, generateRiskFactors, generateSuggestions } from '@/lib/ml/risk-calculator';
+import { calculatePremium } from '@/lib/ml/risk-calculator';
 import { detectFraud } from '@/lib/ml/fraud-detector';
 import { AssessmentRequest, AssessmentResponse } from '@/types';
-
-// Import the new ML Client
 import { mlClient, MLPredictionInput } from '@/lib/ml/ml-client';
 
 export async function POST(req: NextRequest) {
@@ -50,17 +43,8 @@ export async function POST(req: NextRequest) {
             kccData = generateRandomKCC(kcc_id);
         }
 
-        // Fetch satellite & weather data
-        const satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
-        const weatherData = getMockWeatherForecast(gps_latitude, gps_longitude);
-        // Fetch satellite data (mock)
-        //const satelliteData = getMockSatelliteData(gps_latitude, gps_longitude);
-        // Fetch weather forecast (mock)
-        //const weatherData = await getMockWeatherForecast(gps_latitude, gps_longitude);
-        // NEW:
+        // Fetch satellite & weather data (using real APIs)
         const satelliteData = await getRealSatelliteData(gps_latitude, gps_longitude);
-
-        // Fetch weather forecast (mock)
         const weatherData = await getRealWeatherForecast(gps_latitude, gps_longitude);
 
         // 3. Prepare Input for Python Brain (The New Part)
@@ -88,13 +72,14 @@ export async function POST(req: NextRequest) {
             outstanding_debt_ratio: kccData.outstanding_amount / (kccData.land_acres * 50000),
             has_insurance_history: false,
 
-            // Enriched Environmental Data (From Satellite/Weather Mocks)
-            rainfall_deficit_percent: weatherData.risks.drought_probability * 100, // Map probability to deficit
+            // Enriched Environmental Data (From Satellite/Weather APIs)
+            // Note: ML client auto-normalizes percentages >1 to decimal (e.g., 35 → 0.35)
+            rainfall_deficit_pct: weatherData.risks.drought_probability * 100, // Map probability to deficit
             actual_rainfall_mm: 1000 * (1 - weatherData.risks.drought_probability), // Estimate
             heatwave_days: weatherData.risks.heatwave_days,
             monsoon_reliability: 1 - weatherData.risks.drought_probability,
             ndvi_score: satelliteData.ndvi,
-            soil_moisture_percent: satelliteData.soil_moisture,
+            soil_moisture_percent: satelliteData.soil_moisture * 100,  // Convert 0.45 → 45%
             soil_fertility_index: 0.7, // Default
         };
 
@@ -122,28 +107,12 @@ export async function POST(req: NextRequest) {
             nearby_farms: []
         });
 
-        // 6. Pricing (Keep existing logic)
+        // 6. Pricing (using ML prediction score)
         const district_avg_premium = 5000;
-        const pricing = calculatePremium(riskCalculation.final_score, sum_insured, district_avg_premium);
+        const pricing = calculatePremium(prediction.risk_score, sum_insured, district_avg_premium);
 
-        // Generate risk factors and suggestions
-        const risk_factors = generateRiskFactors(
-            riskCalculation.breakdown.weather_risk,
-            riskCalculation.breakdown.infrastructure,
-            riskCalculation.breakdown.diversification,
-            satelliteData.ndvi
-        );
-
-        const improvement_suggestions = generateSuggestions(
-            riskCalculation.final_score,
-            riskCalculation.breakdown,
-            {
-                irrigation_type,
-                water_source_count,
-                crop_count: 1,
-                has_livestock: livestock_count > 0
-            }
-        );
+        // Extract water source count for reference
+        const water_source_count = borewell_count + (has_canal_access ? 1 : 0);
 
         const processingTime = Date.now() - startTime;
 
@@ -153,10 +122,10 @@ export async function POST(req: NextRequest) {
                 farmer_id: `farmer_${kcc_id}`,
                 farmer_name: kccData.farmer_name,
                 assessment_id: `assess_${Date.now()}`,
-                final_risk_score: riskCalculation.final_score,
-                risk_category: riskCalculation.risk_category,
-                confidence_level: riskCalculation.confidence,
-                scores: riskCalculation.breakdown,
+                final_risk_score: prediction.risk_score,
+                risk_category: prediction.risk_category as 'low' | 'medium' | 'high',
+                confidence_level: prediction.confidence,
+                scores: prediction.breakdown,
                 recommended_premium: pricing.recommended_premium,
                 district_avg_premium: pricing.district_avg_premium,
                 savings_amount: pricing.savings,
@@ -164,30 +133,31 @@ export async function POST(req: NextRequest) {
                 fraud_flags: fraudCheck.flags,
                 requires_field_verification: fraudCheck.recommendation === 'field_verify',
                 trust_score: 50 - fraudCheck.fraud_score / 2,
-                
+
                 // Frontend Helpers
                 risk_factors: [
                     // Map top drivers from Python to your UI format
                     ...(prediction.top_risk_drivers || []).map(d => d.factor),
-                    ...(fraudCheck.flags)
-                ]as any,
+                    // Extract fraud flag descriptions as strings
+                    ...fraudCheck.flags.map(f => f.details)
+                ],
                 improvement_suggestions: [
                     // Map protective factors to OBJECTS, not strings
                     ...(prediction.top_protective_factors || []).map(p => ({
                         action: p.factor, // Used for icon matching
                         title: `Maintain ${p.factor}`,
                         description: `Contributes positively to your score`,
-                        priority: 'high'
+                        priority: 'high' as const
                     })),
                     // Static suggestion as an object
                     {
                         action: 'irrigation',
                         title: 'Consider Drip Irrigation',
                         description: 'Can reduce premium by 15%',
-                        priority: 'high'
+                        priority: 'high' as const
                     }
-                ]as any,
-                
+                ],
+
                 data_sources: ['KCC Registry', 'NASA Satellite', 'CatBoost ML Engine'],
                 processing_time_ms: processingTime
             }

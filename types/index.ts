@@ -176,7 +176,7 @@ export interface AssessmentResponse {
         requires_field_verification: boolean;
         trust_score: number;
         risk_factors: string[];
-        improvement_suggestions: Suggestion[];
+        improvement_suggestions: SimpleSuggestion[];  // Changed from Suggestion[] to SimpleSuggestion[]
         data_sources: string[];
         processing_time_ms: number;
     };
@@ -193,6 +193,14 @@ export interface Suggestion {
     subsidy_percent: number;
     impact: 'high' | 'medium' | 'low';
     priority_rank: number;
+}
+
+// Simplified suggestion for ML-generated recommendations
+export interface SimpleSuggestion {
+    action: string;
+    title?: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
 }
 
 // Dashboard types
