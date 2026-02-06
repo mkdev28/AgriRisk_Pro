@@ -80,11 +80,11 @@ function calculateFallbackRiskScore(input: MLPredictionInput): MLPredictionOutpu
   let risk_score = 50; // Base score
 
   // Weather impact (strongest factor)
-  if (input.rainfall_deficit_percent > 0.4) {
+  if (input.rainfall_deficit_pct > 0.4) {
     risk_score -= 25; // Severe drought
-  } else if (input.rainfall_deficit_percent > 0.2) {
+  } else if (input.rainfall_deficit_pct > 0.2) {
     risk_score -= 15; // Moderate drought
-  } else if (input.rainfall_deficit_percent < -0.3) {
+  } else if (input.rainfall_deficit_pct < -0.3) {
     risk_score -= 10; // Flooding
   }
 
@@ -158,7 +158,7 @@ function calculateFallbackRiskScore(input: MLPredictionInput): MLPredictionOutpu
 
   // Simple breakdown (heuristics)
   const weather_risk = Math.max(0, Math.min(25,
-    15 + input.rainfall_deficit_percent * 30 + input.heatwave_days * 0.5
+    15 + input.rainfall_deficit_pct * 30 + input.heatwave_days * 0.5
   ));
 
   const infrastructure = Math.min(25,
