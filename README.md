@@ -1,5 +1,89 @@
 # 🌾 AgriRisk Pro
 
+> **AI-Powered Farm Insurance Risk Assessment Platform**
+> 
+> A production-ready Next.js application that uses machine learning to assess agricultural insurance risks, detect fraud, and provide data-driven improvement suggestions for farmers.
+
+[![Live Demo](https://img.shields.io/badge/Live_Demo-View_Project-blue?style=for-the-badge)](YOUR_DEPLOYMENT_LINK_HERE)
+*(Note: The ML backend is hosted on a free tier. Please allow 50-60 seconds for the server to spin up upon initial load.)*
+
+## 📸 See it in Action
+
+![AgriRisk Pro Demo](link-to-your-gif-or-screenshot-here.gif)
+*(Add a 10-15 second GIF here showing the assessment flow and the results dashboard)*
+
+---
+
+## ✨ Key Features & Engineering Highlights
+
+### 🛡️ Robust Architecture & Reliability
+* **Dual-Mode Fallback Strategy:** Engineered to guarantee **100% uptime**. If the primary Python/CatBoost ML server is unavailable, the system gracefully degrades to a local rule-based mathematical model.
+* **Resilient External APIs:** Automatic fallback to mock satellite/weather data if external API limits are reached or requests timeout.
+
+### 🎯 ML-Powered Risk Assessment
+* **High-Accuracy Modeling:** Utilizes a CatBoost classifier trained on 10,000+ farm records, achieving **87.2% accuracy** in risk prediction.
+* **Explainable AI (XAI):** Implements SHAP values to identify top risk drivers and dynamically generate farm-specific improvement suggestions with ROI and payback period calculations.
+* **Multi-Factor Fraud Detection:** Analyzes data discrepancies between user input and real-time NASA POWER / OpenWeather API data.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS, shadcn/ui, Recharts, React Leaflet
+* **Backend & APIs:** Next.js API Routes, FastAPI, Uvicorn
+* **Machine Learning:** Python, CatBoost, Scikit-learn, Pandas
+* **External Integrations:** NASA POWER API (Satellite data), OpenWeather API
+* **DevOps:** Vercel (Frontend), Railway (ML Server)
+
+---
+
+## 📊 Machine Learning Model Details
+
+**Training Data:** 10,000 synthetic farm records (30+ variables covering weather, soil, financials, and infrastructure).
+
+| Metric | Score |
+| :--- | :--- |
+| **Accuracy** | 87.2% |
+| **Precision** | 85.8% |
+| **Recall** | 88.1% |
+| **F1-Score** | 86.9% |
+
+**Top Features (SHAP Importance):**
+1. Rainfall deficit percentage (28%)
+2. NDVI score (18%)
+3. Irrigation type (15%)
+4. Soil moisture (12%)
+5. Crop count (8%)
+
+---
+
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
+* Node.js 18+ and npm
+* Python 3.10+ (for ML server)
+* OpenWeather API key (Free tier)
+
+### Installation
+
+```bash
+# 1. Clone repository and navigate to project
+git clone [https://github.com/mkdev28/agri-risk-pro.git](https://github.com/mkdev28/agri-risk-pro.git)
+cd agri-risk-pro
+
+# 2. Install frontend dependencies
+npm install
+
+# 3. Install ML server dependencies
+pip install -r requirements.txt
+
+# 4. Set up environment variables
+cp .env.example .env.local
+# Edit .env.local and add your OPENWEATHER_API_KEY
+
+
+# 🌾 AgriRisk Pro
+
 **AI-Powered Farm Insurance Risk Assessment Platform**
 
 A production-ready Next.js application that uses machine learning to assess agricultural insurance risks, detect fraud, and provide data-driven improvement suggestions for farmers.
