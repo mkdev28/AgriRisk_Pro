@@ -13,7 +13,7 @@
 
 ## 📸 See it in Action
 
-![AgriRisk Pro Demo](![ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/4733175b-69ef-4360-bf75-9585657efd24))
+[ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/4733175b-69ef-4360-bf75-9585657efd24)
 
 
 ---
