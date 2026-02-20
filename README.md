@@ -13,8 +13,7 @@
 
 ## 📸 See it in Action
 
-!([ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/4733175b-69ef-4360-bf75-9585657efd24))
-
+(![ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/81d36df5-f528-43fb-b8fd-9db526d23f5d))
 
 ---
 
