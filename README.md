@@ -4,7 +4,7 @@
 > 
 > A production-ready Next.js application that uses machine learning to assess agricultural insurance risks, detect fraud, and provide data-driven improvement suggestions for farmers.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-View_Project-blue?style=for-the-badge)](YOUR_DEPLOYMENT_LINK_HERE)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-View_Project-blue?style=for-the-badge)](https://cropp-l9n4.vercel.app/)
 [![Built with Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)](https://nextjs.org/)
 [![Python ML](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -13,8 +13,10 @@
 
 ## 📸 See it in Action
 
-![AgriRisk Pro Demo](link-to-your-gif-or-screenshot-here.gif)
-*(Add a 10-15 second GIF here showing the assessment flow and the results dashboard)*
+![AgriRisk Pro Demo](![ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/4733175b-69ef-4360-bf75-9585657efd24)
+![ScreenRecording2026-02-06094921-ezgif com-optimize](https://github.com/user-attachments/assets/4733175b-69ef-4360-bf75-9585657efd24)
+)
+
 
 ---
 
