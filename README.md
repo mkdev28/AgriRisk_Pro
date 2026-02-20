@@ -5,6 +5,10 @@
 > A production-ready Next.js application that uses machine learning to assess agricultural insurance risks, detect fraud, and provide data-driven improvement suggestions for farmers.
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-View_Project-blue?style=for-the-badge)](YOUR_DEPLOYMENT_LINK_HERE)
+[![Built with Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)](https://nextjs.org/)
+[![Python ML](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 *(Note: The ML backend is hosted on a free tier. Please allow 50-60 seconds for the server to spin up upon initial load.)*
 
 ## 📸 See it in Action
@@ -27,133 +31,9 @@
 
 ---
 
-## 🛠️ Tech Stack
-
-* **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS, shadcn/ui, Recharts, React Leaflet
-* **Backend & APIs:** Next.js API Routes, FastAPI, Uvicorn
-* **Machine Learning:** Python, CatBoost, Scikit-learn, Pandas
-* **External Integrations:** NASA POWER API (Satellite data), OpenWeather API
-* **DevOps:** Vercel (Frontend), Railway (ML Server)
-
----
-
-## 📊 Machine Learning Model Details
-
-**Training Data:** 10,000 synthetic farm records (30+ variables covering weather, soil, financials, and infrastructure).
-
-| Metric | Score |
-| :--- | :--- |
-| **Accuracy** | 87.2% |
-| **Precision** | 85.8% |
-| **Recall** | 88.1% |
-| **F1-Score** | 86.9% |
-
-**Top Features (SHAP Importance):**
-1. Rainfall deficit percentage (28%)
-2. NDVI score (18%)
-3. Irrigation type (15%)
-4. Soil moisture (12%)
-5. Crop count (8%)
-
----
-
-## 🚀 Quick Start (Local Development)
-
-### Prerequisites
-* Node.js 18+ and npm
-* Python 3.10+ (for ML server)
-* OpenWeather API key (Free tier)
-
-### Installation
-
-```bash
-# 1. Clone repository and navigate to project
-git clone [https://github.com/mkdev28/agri-risk-pro.git](https://github.com/mkdev28/agri-risk-pro.git)
-cd agri-risk-pro
-
-# 2. Install frontend dependencies
-npm install
-
-# 3. Install ML server dependencies
-pip install -r requirements.txt
-
-# 4. Set up environment variables
-cp .env.example .env.local
-# Edit .env.local and add your OPENWEATHER_API_KEY
-
-
-# 🌾 AgriRisk Pro
-
-**AI-Powered Farm Insurance Risk Assessment Platform**
-
-A production-ready Next.js application that uses machine learning to assess agricultural insurance risks, detect fraud, and provide data-driven improvement suggestions for farmers.
-
-[![Built with Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)](https://nextjs.org/)
-[![Python ML](https://img.shields.io/badge/Python-3.10+-blue)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
----
-
-## ✨ Features
-
-### 🎯 Core Functionality
-- **ML-Powered Risk Assessment** - CatBoost model with 87% accuracy
-- **Fraud Detection** - Multi-factor analysis with confidence scoring
-- **Dynamic Pricing** - Risk-based premium calculation
-- **Smart Suggestions** - Farm-specific improvement recommendations with ROI
-
-### 🛡️ Robust Architecture
-- **API Fallbacks** - Automatic fallback to mock data when external APIs timeout
-- **Dual ML Strategy** - Falls back to rule-based model if ML server unavailable
-- **Error Handling** - Graceful degradation ensures 100% uptime
-- **Real-Time Data** - NASA POWER satellite + OpenWeather integration
-
-### 📊 Key Metrics Calculated
-- **Risk Score** (0-100) - Comprehensive farm risk assessment
-- **Diversity Score** - Crop and income source diversification
-- **Trust Score** - Based on KCC repayment history
-- **Weather Risk** - Drought, flood, and heatwave impact
-- **Infrastructure Score** - Irrigation and water source quality
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.10+ (for ML server)
-- OpenWeather API key ([Get free key](https://openweathermap.org/api))
-
-### Local Development
-
-```bash
-# Clone repository
-git clone https://github.com/YOUR_USERNAME/agri-risk-pro.git
-cd agri-risk-pro
-
-# Install dependencies
-npm install
-pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local and add your OPENWEATHER_API_KEY
-
-# Start ML server (Terminal 1)
-python run_ml.py
-
-# Start Next.js app (Terminal 2)
-npm run dev
-
-# Open browser
-http://localhost:3000
-```
-
----
-
 ## 📁 Project Structure
 
-```
+```text
 agri-risk-pro/
 ├── app/                      # Next.js App Router
 │   ├── api/                  # API routes
@@ -163,26 +43,16 @@ agri-risk-pro/
 │   ├── assess/               # Assessment wizard UI
 │   └── dashboard/            # Admin dashboards
 ├── components/               # React components
-│   ├── shared/               # Reusable components
-│   └── ui/                   # shadcn/ui components
 ├── lib/                      # Utilities
-│   ├── ml/                   # ML client & calculators
-│   │   ├── ml-client.ts      # ML server integration
-│   │   ├── risk-calculator.ts # Fallback model
-│   │   └── fraud-detector.ts  # Fraud detection logic
-│   └── data/                 # Data fetchers
-│       ├── satellite-api.ts   # NASA POWER integration
-│       └── weather-api.ts     # OpenWeather integration
+│   ├── ml/                   # ML client & calculators (Fallback model, Fraud logic)
+│   └── data/                 # Data fetchers (NASA POWER, OpenWeather)
 ├── ml/                       # Python ML server
 │   ├── api_server.py         # FastAPI server
 │   ├── train_model.py        # ML training pipeline
 │   └── data_generator.py     # Synthetic data generation
 ├── types/                    # TypeScript definitions
-├── .env.example              # Environment template
 ├── vercel.json               # Vercel config
-├── Procfile                  # Railway/Render config
-└── DEPLOYMENT.md             # Deployment guide
-```
+└── Procfile                  # Railway/Render config
 
 ---
 
